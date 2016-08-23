@@ -109,7 +109,12 @@ EXPORT struct evm_result evm_execute(struct evm_instance* instance,
     hera.execute(call);
   } catch (std::exception &e) {
     // FIXME: `evm_result` should have a way to report this back
-    Fatal() << "Execution failed: " << e.what() << "\n";
+    std::cerr << "Execution failed: " << e.what() << "\n";
+
+    ret.gas_left = VM_EXCEPTION;
+
+    delete call;
+    return ret;
   }
 
   // copy call result
