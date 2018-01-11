@@ -12,3 +12,4 @@ project(hera)
 include(ProjectBinaryen)
 
 add_subdirectory(src)
+add_subdirectory(tests)
