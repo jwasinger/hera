@@ -113,6 +113,12 @@ vector<uint8_t> sentinel(evm_context* context, vector<uint8_t> const& input)
 #endif
 }
 
+#if HERA_EVM2WASM
+string evm2wasm(string const&) {
+  return string();
+}
+#endif
+
 void execute(
 	evm_context* context,
 	vector<uint8_t> const& code,
@@ -184,16 +190,26 @@ evm_result evm_execute(
     ExecutionResult result;
     result.gasLeft = (uint64_t)msg->gas;
 
+    vector<uint8_t> _code;
+
     // ensure we can only handle WebAssembly version 1
     if (code_size < 5 || code[0] != 0 || code[1] != 'a' || code[2] != 's' || code[3] != 'm' || code[4] != 1) {
+#if HERA_EVM2WASM
+      (void)instance;
+      // Translate EVM bytecode to WASM
+      string translated = evm2wasm(string(reinterpret_cast<const char*>(code), code_size));
+      heraAssert(translated.size() != 0, "Transcompiling via evm2wasm failed");
+      _code.assign(translated.begin(), translated.end());
+#else
       hera_instance* hera = static_cast<hera_instance*>(instance);
       ret.status_code = hera->fallback ? EVM_REJECTED : EVM_FAILURE;
       return ret;
+#endif
+    } else {
+      _code.assign(code, code + code_size);
     }
 
     heraAssert(rev == EVM_BYZANTIUM, "Only Byzantium supported.");
-
-    vector<uint8_t> _code(code, code + code_size);
 
     if (msg->kind == EVM_CREATE) {
       // Meter the deployment (constructor) code
