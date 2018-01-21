@@ -25,6 +25,8 @@
 #include <vector>
 #include <stdexcept>
 #include <cstdlib>
+#include <unistd.h>
+#include <fstream>
 
 #include <pass.h>
 #include <wasm.h>
@@ -49,6 +51,46 @@ struct hera_instance : evm_instance {
 };
 
 namespace {
+
+#if HERA_EVM2WASM_JS
+// NOTE: assumes that pattern doesn't contain any formatting characters (e.g. %)
+string mktemp_string(string pattern) {
+  char tmp[PATH_MAX] = { 0 };
+  size_t len = snprintf(tmp, sizeof(tmp), "%s", pattern.c_str());
+  mktemp(tmp);
+  return string(tmp, len);
+}
+
+string evm2wasm(string const& input) {
+  string fileEVM = mktemp_string("/tmp/hera.evm2wasm.evm.XXXXXXXX");
+  string fileWASM = mktemp_string("/tmp/hera.evm2wasm.wasm.XXXXXXXX");
+
+  ofstream os;
+  os.open(fileEVM);
+  os << input;
+  os.close();
+
+  string cmd = string("evm2wasm.js ") + "-e " + fileEVM + " -o " + fileWASM;
+  if (system(cmd.c_str()) != 0) {
+    unlink(fileEVM.c_str());
+    unlink(fileWASM.c_str());
+    return string();
+  }
+
+  ifstream is(fileWASM);
+  string str((istreambuf_iterator<char>(is)),
+                 istreambuf_iterator<char>());
+
+  unlink(fileEVM.c_str());
+  unlink(fileWASM.c_str());
+
+  return str;
+}
+#elif HERA_EVM2WASM
+string evm2wasm(string const&) {
+  return string();
+}
+#endif
 
 #if HERA_METERING_CONTRACT
 vector<uint8_t> callSystemContract(
@@ -112,12 +154,6 @@ vector<uint8_t> sentinel(evm_context* context, vector<uint8_t> const& input)
   return input;
 #endif
 }
-
-#if HERA_EVM2WASM
-string evm2wasm(string const&) {
-  return string();
-}
-#endif
 
 void execute(
 	evm_context* context,
@@ -194,7 +230,7 @@ evm_result evm_execute(
 
     // ensure we can only handle WebAssembly version 1
     if (code_size < 5 || code[0] != 0 || code[1] != 'a' || code[2] != 's' || code[3] != 'm' || code[4] != 1) {
-#if HERA_EVM2WASM
+#if HERA_EVM2WASM_JS || HERA_EVM2WASM
       (void)instance;
       // Translate EVM bytecode to WASM
       string translated = evm2wasm(string(reinterpret_cast<const char*>(code), code_size));
