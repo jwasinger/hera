@@ -146,6 +146,7 @@ string mktemp_string(string pattern) {
 vector<uint8_t> evm2wasm_js(vector<uint8_t> const& input) {
   string fileEVM = mktemp_string("/tmp/hera.evm2wasm.evm.XXXXXX");
   string fileWASM = mktemp_string("/tmp/hera.evm2wasm.wasm.XXXXXX");
+  string fileWAST = mktemp_string("/tmp/hera.evm2wasm.wast.XXXXXX");
 
   if (fileEVM.size() == 0 || fileWASM.size() == 0)
     return vector<uint8_t>();
@@ -168,6 +169,15 @@ vector<uint8_t> evm2wasm_js(vector<uint8_t> const& input) {
 
   if (ret != 0) {
     unlink(fileWASM.data());
+    return vector<uint8_t>();
+  }
+
+  cmd = string("evm2wasm.js ") + "-e " + fileEVM + " -o " + fileWAST + " --wast";
+  ret = system(cmd.data());
+
+  printf("%s\n", cmd.c_str());
+  if (ret != 0) {
+    unlink(fileWAST.data());
     return vector<uint8_t>();
   }
 
