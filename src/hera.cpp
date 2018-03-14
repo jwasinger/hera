@@ -64,6 +64,7 @@ string mktemp_string(string pattern) {
 vector<uint8_t> evm2wasm(vector<uint8_t> const& input) {
   string fileEVM = mktemp_string("/tmp/hera.evm2wasm.evm.XXXXXXXX");
   string fileWASM = mktemp_string("/tmp/hera.evm2wasm.wasm.XXXXXXXX");
+  string fileWAST = mktemp_string("/tmp/hera.evm2wasm.wast.XXXXXXXX");
 
   ofstream os;
   os.open(fileEVM);
@@ -73,19 +74,26 @@ vector<uint8_t> evm2wasm(vector<uint8_t> const& input) {
     os << static_cast<int>(byte);
   os.close();
 
-  string cmd = string("evm2wasm.js ") + "-e " + fileEVM + " -o " + fileWASM;
-  if (system(cmd.c_str()) != 0) {
+  string cmdWASM = string("evm2wasm.js ") + "-e " + fileEVM + " -o " + fileWASM;
+  if (system(cmdWASM.c_str()) != 0) {
     unlink(fileEVM.c_str());
     unlink(fileWASM.c_str());
     return vector<uint8_t>();
+  }
+
+  string cmdWAST = string("evm2wasm.js ") + "-e " + fileEVM + " -o " + fileWAST + " --wast";
+  printf(" executing '%s' ...\n", cmdWAST.c_str());
+  if (system(cmdWAST.c_str()) != 0) {
+    unlink(fileWAST.c_str());
+    printf("evm2wasm failed trying to convert EVM->WAST\n");
   }
 
   ifstream is(fileWASM);
   string str((istreambuf_iterator<char>(is)),
                  istreambuf_iterator<char>());
 
-  unlink(fileEVM.c_str());
-  unlink(fileWASM.c_str());
+  //unlink(fileEVM.c_str());
+  //unlink(fileWASM.c_str());
 
   return vector<uint8_t>(str.begin(), str.end());
 }
