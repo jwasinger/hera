@@ -17,8 +17,10 @@ ExternalProject_Add(wabt
     DOWNLOAD_DIR ${prefix}/downloads
     SOURCE_DIR ${source_dir}
     BINARY_DIR ${binary_dir}
-    URL https://github.com/WebAssembly/wabt/archive/1.0.11.tar.gz
-    URL_HASH SHA256=90e7f4a4e924e38af4edb6ca298ade662869c5b61a12399e71ee53d598d52cbe
+    # URL https://github.com/WebAssembly/wabt/archive/1.0.11.tar.gz
+    # URL_HASH SHA256=90e7f4a4e924e38af4edb6ca298ade662869c5b61a12399e71ee53d598d52cbe
+    GIT_REPOSITORY https://github.com/jwasinger/wabt
+    GIT_TAG error-tracing
     CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
     -DCMAKE_BUILD_TYPE=Release
